@@ -34176,6 +34176,7 @@ var _default = function _default() {
 
 exports.default = _default;
 window.osmo = window.osmo || {};
+window.$ = _jquery.default;
 /**
  * ------------------------------------------------
  * class:	Scroll
