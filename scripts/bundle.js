@@ -33574,7 +33574,8 @@ osmo.PanAndZoom = /*#__PURE__*/function () {
 
     this.PAPER = osmo.scroll.PAPER; //@private
 
-    this.mousePos; // Methods
+    this.mousePos;
+    this.maxZoom = 1.5; // Methods
 
     this.init;
     this.update;
@@ -33593,26 +33594,55 @@ osmo.PanAndZoom = /*#__PURE__*/function () {
 
       $('#main-scroll-canvas').on('mousewheel', function (event) {
         var et = event.originalEvent;
+        event.preventDefault(); // Pinch-Zoom
+        // Tricky spec - https://medium.com/@auchenberg/detecting-multi-touch-trackpad-gestures-in-javascript-a2505babb10e
 
-        if (event.altKey) {
+        if (et.ctrlKey) {
           osmo.scroll.PAPER.view.zoom = osmo.pzinteract.changeZoom(osmo.scroll.PAPER.view.zoom, et.deltaY);
-          event.preventDefault();
+          /*
+          let zoomObj = { zoomVal: osmo.scroll.PAPER.view.zoom };
+          let tween = osmo.scroll.PAPER.Tween( zoomObj,
+          	{ zoomVal: osmo.scroll.PAPER.view.zoom },
+          	{ zoomVal: osmo.pzinteract.changeZoom(osmo.scroll.PAPER.view.zoom, et.deltaY) },
+          	1000
+          );
+          */
+
+          /*
+          // Install event using on('update') method:
+          tween.on('update', function(event) {
+          		console.log(event);
+              //factorText.content = 'factor: ' + event.factor.toFixed(2);
+          });
+          */
+
+          /*
+          let bounds = osmo.scroll.PAPER.view.bounds;
+             if (bounds.x < 0) osmo.scroll.PAPER.view.center = osmo.scroll.PAPER.view.center.subtract(new osmo.scroll.PAPER.Point(bounds.x, 0));
+            if (bounds.y < 0) osmo.scroll.PAPER.view.center = osmo.scroll.PAPER.view.center.subtract(new osmo.scroll.PAPER.Point(0, bounds.y));
+             bounds = osmo.scroll.PAPER.view.bounds;
+            var
+                w = bounds.x + bounds.width,
+                h = bounds.y + bounds.height;
+             if (w > osmo.scroll.PAPER.view.viewSize.width) osmo.scroll.PAPER.view.center = osmo.scroll.PAPER.view.center.subtract(new osmo.scroll.PAPER.Point(w - osmo.scroll.PAPER.view.viewSize.width, 0));
+            if (h > osmo.scroll.PAPER.view.viewSize.height) osmo.scroll.PAPER.view.center = osmo.scroll.PAPER.view.center.subtract(new osmo.scroll.PAPER.Point(0, h - osmo.scroll.PAPER.view.viewSize.height));
+          	*/
         } else {
+          var fac = 1.005 / (osmo.scroll.PAPER.view.zoom * osmo.scroll.PAPER.view.zoom);
+
           if (osmo.scroll.PAPER.view.zoom == 1) {
-            if (osmo.scroll.PAPER.view.center.y < osmo.scroll.paperHeight / 2 + 1 && et.deltaY < 0) osmo.scroll.PAPER.view.center = osmo.pzinteract.changeCenter(osmo.scroll.PAPER.view.center, et.deltaX, et.deltaY, 1.05);else if (osmo.scroll.PAPER.view.center.y > osmo.scroll.paperHeight / 2 - 1 && et.deltaY > 0) osmo.scroll.PAPER.view.center = osmo.pzinteract.changeCenter(osmo.scroll.PAPER.view.center, et.deltaX, et.deltaY, 1.05);else {
-              osmo.scroll.PAPER.view.center = osmo.pzinteract.changeCenter(osmo.scroll.PAPER.view.center, et.deltaX, 0, 1.05);
+            if (osmo.scroll.PAPER.view.center.y < osmo.scroll.paperHeight / 2 + 1 && et.deltaY < 0) osmo.scroll.PAPER.view.center = osmo.pzinteract.changeCenter(osmo.scroll.PAPER.view.center, et.deltaX, et.deltaY, fac);else if (osmo.scroll.PAPER.view.center.y > osmo.scroll.paperHeight / 2 - 1 && et.deltaY > 0) osmo.scroll.PAPER.view.center = osmo.pzinteract.changeCenter(osmo.scroll.PAPER.view.center, et.deltaX, et.deltaY, fac);else {
+              osmo.scroll.PAPER.view.center = osmo.pzinteract.changeCenter(osmo.scroll.PAPER.view.center, et.deltaX, 0, fac);
             }
           } else {
             if (osmo.scroll.PAPER.view.center.y * osmo.scroll.PAPER.view.zoom - osmo.scroll.paperHeight / 2 <= 0 && et.deltaY > 0) {
-              osmo.scroll.PAPER.view.center = osmo.pzinteract.changeCenter(osmo.scroll.PAPER.view.center, et.deltaX, 0, 1.05);
+              osmo.scroll.PAPER.view.center = osmo.pzinteract.changeCenter(osmo.scroll.PAPER.view.center, et.deltaX, 0, fac);
             } else if (osmo.scroll.PAPER.view.center.y * osmo.scroll.PAPER.view.zoom > -osmo.scroll.paperHeight / 2 + osmo.scroll.paperHeight * osmo.scroll.PAPER.view.zoom && et.deltaY < 0) {
-              osmo.scroll.PAPER.view.center = osmo.pzinteract.changeCenter(osmo.scroll.PAPER.view.center, et.deltaX, 0, 1.05);
+              osmo.scroll.PAPER.view.center = osmo.pzinteract.changeCenter(osmo.scroll.PAPER.view.center, et.deltaX, 0, fac);
             } else {
-              osmo.scroll.PAPER.view.center = osmo.pzinteract.changeCenter(osmo.scroll.PAPER.view.center, et.deltaX, et.deltaY, 1.05);
+              osmo.scroll.PAPER.view.center = osmo.pzinteract.changeCenter(osmo.scroll.PAPER.view.center, et.deltaX, et.deltaY, fac);
             }
           }
-
-          event.preventDefault();
         }
       });
     }
@@ -33629,6 +33659,9 @@ osmo.PanAndZoom = /*#__PURE__*/function () {
       offset = offset.multiply(factor);
       oldCenter = oldCenter.add(offset); //
 
+      if (oldCenter.x < osmo.scroll.paperWidth / 2) oldCenter.x = osmo.scroll.paperWidth / 2;
+      if (oldCenter.x > osmo.datasvg.scrollWidth) oldCenter.x = osmo.datasvg.scrollWidth; //
+
       return oldCenter;
     }
     /**
@@ -33640,16 +33673,27 @@ osmo.PanAndZoom = /*#__PURE__*/function () {
   }, {
     key: "changeZoom",
     value: function changeZoom(oldZoom, delta) {
-      var factor = 1.04;
+      var factor = 1.015;
       var newZoom = oldZoom; //
 
       if (delta < 0) newZoom = oldZoom * factor;
       if (delta > 0) newZoom = oldZoom / factor; //
 
       if (newZoom <= 1) newZoom = 1;
-      if (newZoom > 25) newZoom = 25; //
+      if (newZoom > this.maxZoom) newZoom = this.maxZoom; //
 
       return newZoom;
+    }
+    /**
+     * ------------------------------------------------
+     * setMaxZoom
+     * ------------------------------------------------
+     */
+
+  }, {
+    key: "setMaxZoom",
+    value: function setMaxZoom(val) {
+      this.maxZoom = val;
     }
   }]);
 
@@ -33872,7 +33916,9 @@ osmo.svgScroll = /*#__PURE__*/function () {
     this.PAPER = osmo.scroll.PAPER; //@private
 
     this.position;
-    this.mousePos; // Methods
+    this.mousePos;
+    this.quality = 'HQ';
+    this.scrollWidth; // Methods
 
     this.init;
     this.update;
@@ -33880,24 +33926,123 @@ osmo.svgScroll = /*#__PURE__*/function () {
   }
   /**
    * ------------------------------------------------
-   * Initalize stars
+   * Initalize splash
    * ------------------------------------------------
    */
 
 
   _createClass(_class, [{
+    key: "initSplash",
+    value: function initSplash(_width) {
+      console.log('osmo.svgScroll - initSplash'); //
+      // SPLASH
+      //
+
+      var raster = new this.PAPER.Raster('splash'); // Scale the raster
+
+      var s = _width / raster.width;
+      raster.scale(s); // Move the raster to the center of the view
+
+      raster.position = this.PAPER.view.center;
+      raster.position.y -= 20; //
+      // SCROLL TEXT
+      //
+
+      var textLoc = new this.PAPER.Point(raster.position.x - raster.width * s / 3, raster.position.y + raster.height * s * 0.65);
+      var text = new this.PAPER.PointText(textLoc);
+      text.justification = 'left';
+      text.fillColor = '#b97941';
+      text.fontFamily = 'Roboto';
+      text.fontSize = window.isMobile ? '12px' : '18px';
+      text.content = 'Scroll to explore';
+      var textWidth = text.bounds.width; //
+      // SCROLL ARROW
+      //
+
+      var start = new this.PAPER.Point(textLoc.x + textWidth + 10, textLoc.y - 5);
+      var end = new this.PAPER.Point(start.x + raster.width * s / 2 - textWidth, start.y);
+      var line = new this.PAPER.Path();
+      line.strokeColor = '#b97941';
+      line.moveTo(start);
+      line.lineTo(end);
+      var size = window.isMobile ? 4 : 8;
+      var triangle = new this.PAPER.Path.RegularPolygon(new this.PAPER.Point(end.x, end.y + size / 4), 3, size);
+      triangle.rotate(90);
+      triangle.fillColor = '#b97941'; //
+    }
+    /**
+     * ------------------------------------------------
+     * Initalize
+     * ------------------------------------------------
+     */
+
+  }, {
     key: "init",
-    value: function init() {
-      console.log('osmo.svgScroll - initStars'); //
+    value: function init(q) {
+      console.log('osmo.svgScroll - initStars');
+      this.quality = q; //
 
       this.mousePos = this.PAPER.view.center;
-      this.position = this.PAPER.view.center; //
-
+      this.position = this.PAPER.view.center;
+      /*
       console.log('Loading SVG...');
-      var svg_paths = this.PAPER.project.importSVG('./data/SCROLL_cs6_ver23_APP_v2-01.svg', function () {
-        console.log('Completed loading data SVG.');
-        console.log(svg_paths);
-      });
+      let svg_paths = this.PAPER.project.importSVG(
+      	'./data/SCROLL_cs6_ver23_APP_v2-01.svg'
+      	, function(){
+      		console.log('Completed loading data SVG.');
+      		console.log(svg_paths);
+      	});
+      */
+
+      if (this.quality == 'High') {
+        //
+        //HQscroll
+        // Create a raster item using the image tag with id=''
+        var raster = new this.PAPER.Raster('HQscroll'); // Scale the raster
+
+        var s = osmo.scroll.paperHeight / raster.height;
+        raster.scale(s); //
+        // Move the raster to the center of the view
+
+        raster.position = this.PAPER.view.center;
+        raster.position.x = osmo.scroll.paperWidth * s * 3 / 4 + raster.width * s / 2; //
+
+        this.scrollWidth = raster.width * s;
+      } else if (this.quality == 'Mobile') {
+        //
+        //MQscroll
+        // Create a raster item using the image tag with id=''
+        var _raster = new this.PAPER.Raster('MQscroll'); // Scale the raster
+
+
+        var _s = osmo.scroll.paperHeight / _raster.height;
+
+        _raster.scale(_s); // Move the raster to the center of the view
+
+
+        _raster.position = this.PAPER.view.center;
+        _raster.position.x = osmo.scroll.paperWidth * 3 / 4 + _raster.width * _s / 2; //
+        //
+
+        this.scrollWidth = _raster.width * _s;
+      } else if (this.quality == 'Retina') {
+        //
+        //RQscroll
+        // Create a raster item using the image tag with id=''
+        var _raster2 = new this.PAPER.Raster('RQscroll'); // Scale the raster
+
+
+        var _s2 = osmo.scroll.paperHeight / _raster2.height;
+
+        _raster2.scale(_s2); //
+        // Move the raster to the center of the view
+
+
+        _raster2.position = this.PAPER.view.center;
+        _raster2.position.x = osmo.scroll.paperWidth * 3 / 4 + _raster2.width * _s2 / 2; //
+
+        this.scrollWidth = _raster2.width * _s2;
+      }
     }
     /**
      * ------------------------------------------------
@@ -34006,8 +34151,8 @@ osmo.testShapes = /*#__PURE__*/function () {
       var rect = new this.PAPER.Path.Rectangle({
         point: [0, 0],
         size: [this.PAPER.view.size.width, this.PAPER.view.size.height],
-        strokeColor: 'black',
-        fillColor: 'black'
+        strokeColor: '#222',
+        fillColor: '#222'
       });
       rect.sendToBack();
     }
@@ -34124,7 +34269,8 @@ osmo.testShapes = /*#__PURE__*/function () {
 require("./osmoScroll");
 
 /*global osmo:true, $:true*/
-window.osmo = window.osmo || {}; //
+window.osmo = window.osmo || {};
+window.isMobile = mobileCheck(); //
 //
 
 window.onload = function () {
@@ -34132,8 +34278,47 @@ window.onload = function () {
   console.log('Window loaded'); // Scroll instance
 
   osmo.scroll = new osmo.Scroll();
-  osmo.scroll.init();
-};
+  osmo.scroll.init(); //
+  //
+  //
+
+  var please_wait_spinner = '<div class="sk-three-bounce"><div class="sk-child sk-bounce1" style="background-color: #b97941"></div><div class="sk-child sk-bounce2" style="background-color: #b97941"></div><div class="sk-child sk-bounce3" style="background-color: #b97941"></div></div>';
+  var DesktopHtmlContent = '<div id="main-inner-choice" style="display: block;font-family: \'Roboto\'"><h2 id="quality-choice" style="font-family: \'Roboto\'"><a id="quality-choice-best" style="font-family: \'Roboto\'" class="invert" onclick="osmo.scroll.loadRQ();" href="#">RETINA QUALITY</a>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;<a class="invert" onclick="osmo.scroll.loadHQ();" href="#">HIGH QUALITY</a></h2></div>'; //
+
+  if (!window.isMobile) {
+    console.log('Loading screen for desktop');
+    window.loading_screen = window.pleaseWait({
+      logo: 'images/OsmoSplash.png',
+      backgroundColor: '#b4d2da',
+      loadingHtml: DesktopHtmlContent
+    });
+  } else {
+    console.log('Loading screen for mobile');
+    window.loading_screen = window.pleaseWait({
+      logo: 'images/OsmoSplash.png',
+      backgroundColor: '#b4d2da',
+      loadingHtml: please_wait_spinner
+    }); //
+
+    osmo.scroll.loadMQ();
+  } //
+  //
+
+
+  var logo = $('.pg-loading-logo');
+  osmo.scroll.splashWidth = logo.outerWidth();
+}; //
+
+
+function mobileCheck() {
+  var check = false;
+
+  (function (a) {
+    if (/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i.test(a) || /1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i.test(a.substr(0, 4))) check = true;
+  })(navigator.userAgent || navigator.vendor || window.opera);
+
+  return check;
+}
 
 },{"./osmoScroll":12}],12:[function(require,module,exports){
 /*global osmo:true $:true*/
@@ -34200,10 +34385,15 @@ osmo.Scroll = /*#__PURE__*/function () {
 
     this.MAINSCREEN; //
 
-    this.paperHeight; // Methods
+    this.paperHeight;
+    this.paperWidth;
+    this.splashWidth; // Methods
 
     this.init;
     this.addBackground;
+    this.loadHQ;
+    this.loadRQ;
+    this.loadMQ;
   }
   /**
    * ------------------------------------------------
@@ -34222,7 +34412,8 @@ osmo.Scroll = /*#__PURE__*/function () {
       _paper.default.setup(canvas);
 
       osmo.scroll.PAPER = _paper.default;
-      osmo.scroll.paperHeight = canvas.offsetHeight; // Setup TONE
+      osmo.scroll.paperHeight = canvas.offsetHeight;
+      osmo.scroll.paperWidth = canvas.offsetWidth; // Setup TONE
 
       osmo.scroll.TONE = _tone.default; // INTERACTIONS
 
@@ -34231,9 +34422,9 @@ osmo.Scroll = /*#__PURE__*/function () {
       //osmo.mstars = new osmo.movingStars();
       //osmo.mstars.init();
       // data SVG instance
-
-      osmo.datasvg = new osmo.svgScroll();
-      osmo.datasvg.init(); // test Visuals instance
+      //osmo.datasvg = new osmo.svgScroll();
+      //osmo.datasvg.init();
+      // test Visuals instance
       //osmo.test = new osmo.testShapes();
       //osmo.test.init();
       // Draw PAPER
@@ -34253,6 +34444,102 @@ osmo.Scroll = /*#__PURE__*/function () {
       }; //
       //
 
+    }
+    /**
+     * ------------------------------------------------
+     * High Quality Image
+     * ------------------------------------------------
+     */
+
+  }, {
+    key: "loadHQ",
+    value: function loadHQ() {
+      console.log('osmo.scroll.loadHQ - called'); //
+
+      osmo.pzinteract.setMaxZoom(2); //
+
+      var please_wait_spinner = '<div class="sk-three-bounce"><div class="sk-child sk-bounce1" style="background-color: #b97941"></div><div class="sk-child sk-bounce2" style="background-color: #b97941"></div><div class="sk-child sk-bounce3" style="background-color: #b97941"></div></div>';
+      (0, _jquery.default)('.pg-loading-html').empty();
+      (0, _jquery.default)('.pg-loading-html').append(_jquery.default.parseHTML(please_wait_spinner)); //
+
+      var image = document.getElementById('HQscroll');
+      var downloadingImage = new Image();
+
+      downloadingImage.onload = function () {
+        console.log('Loaded HQ image');
+        image.src = this.src; //
+
+        osmo.datasvg = new osmo.svgScroll();
+        osmo.datasvg.init('High');
+        osmo.datasvg.initSplash(osmo.scroll.splashWidth); //
+
+        window.loading_screen.finish();
+      };
+
+      downloadingImage.src = 'images/SCROLL_cs6_ver23_APP_final_HD.png';
+    }
+    /**
+     * ------------------------------------------------
+     * Retina Quality Image
+     * ------------------------------------------------
+     */
+
+  }, {
+    key: "loadRQ",
+    value: function loadRQ() {
+      console.log('osmo.scroll.loadRQ - called'); //
+
+      osmo.pzinteract.setMaxZoom(12); //
+
+      var please_wait_spinner = '<div class="sk-three-bounce"><div class="sk-child sk-bounce1" style="background-color: #b97941"></div><div class="sk-child sk-bounce2" style="background-color: #b97941"></div><div class="sk-child sk-bounce3" style="background-color: #b97941"></div></div>';
+      (0, _jquery.default)('.pg-loading-html').empty();
+      (0, _jquery.default)('.pg-loading-html').append(_jquery.default.parseHTML(please_wait_spinner)); //
+
+      var image = document.getElementById('RQscroll');
+      var downloadingImage = new Image();
+
+      downloadingImage.onload = function () {
+        console.log('Loaded RQ image');
+        image.src = this.src; //
+        //
+
+        osmo.datasvg = new osmo.svgScroll();
+        osmo.datasvg.init('Retina');
+        osmo.datasvg.initSplash(osmo.scroll.splashWidth); //
+
+        window.loading_screen.finish(); //
+      };
+
+      downloadingImage.src = 'images/SCROLL_cs6_ver23_APP_final_Retina.png';
+    }
+    /**
+     * ------------------------------------------------
+     * Mobile Quality Image
+     * ------------------------------------------------
+     */
+
+  }, {
+    key: "loadMQ",
+    value: function loadMQ() {
+      console.log('osmo.scroll.loadMQ - called'); //
+
+      osmo.pzinteract.setMaxZoom(2); //
+
+      var image = document.getElementById('MQscroll');
+      var downloadingImage = new Image();
+
+      downloadingImage.onload = function () {
+        console.log('Loaded MQ image');
+        image.src = this.src; //
+
+        osmo.datasvg = new osmo.svgScroll();
+        osmo.datasvg.init('Mobile');
+        osmo.datasvg.initSplash(osmo.scroll.splashWidth); //
+
+        window.loading_screen.finish(); //
+      };
+
+      downloadingImage.src = 'images/SCROLL_cs6_ver23_APP_final_Mobile.png';
     }
   }]);
 
