@@ -33575,7 +33575,9 @@ osmo.PanAndZoom = /*#__PURE__*/function () {
     this.PAPER = osmo.scroll.PAPER; //@private
 
     this.mousePos;
-    this.maxZoom = 1.5; // Methods
+    this.maxZoom = 1.5;
+    this.isCompletedDetecting = false;
+    this.isTrackpadDetected = false; // Methods
 
     this.init;
     this.update;
@@ -33590,58 +33592,107 @@ osmo.PanAndZoom = /*#__PURE__*/function () {
   _createClass(_class, [{
     key: "init",
     value: function init() {
-      console.log('Initlaized Pan & Zoom'); //
+      console.log('Initlaized Pan & Zoom');
+
+      if (!window.isMobile) {
+        var detectTrackPad = function detectTrackPad(e) {
+          var isTrackpad = false;
+
+          if (e.wheelDeltaY) {
+            if (e.wheelDeltaY === e.deltaY * -3) {
+              isTrackpad = true;
+            }
+          } else if (e.deltaMode === 0) {
+            isTrackpad = true;
+          }
+
+          console.log(isTrackpad ? 'Trackpad detected' : 'Mousewheel detected');
+          osmo.pzinteract.isCompletedDetecting = true;
+          osmo.pzinteract.isTrackpadDetected = isTrackpad; //
+
+          if (osmo.pzinteract.isCompletedDetecting) {
+            document.removeEventListener('mousewheel', detectTrackPad, false);
+            document.removeEventListener('DOMMouseScroll', detectTrackPad, false);
+          }
+        };
+
+        document.addEventListener('mousewheel', detectTrackPad, false);
+        document.addEventListener('DOMMouseScroll', detectTrackPad, false);
+      } else {
+        this.isCompletedDetecting = true;
+        this.isTrackpadDetected = true;
+      } //touchmove works for iOS, and Android
+
+
+      var prevX = 0;
+      var prevY = 0;
+      $(document).on('touchmove', function (event) {
+        //console.log('touchmove');
+        //console.log(event);
+        //
+        var newX = event.touches[0].clientX;
+        var newY = event.touches[0].clientY; //
+
+        var deltaX = prevX - newX;
+        if (deltaX > 10 || deltaX < -10) deltaX = 0;
+        var deltaY = prevY - newY;
+        if (deltaY > 10 || deltaY < -10) deltaY = 0; //
+
+        prevX = newX;
+        prevY = newY; //
+
+        var newEvent = event;
+        newEvent.type = 'mousewheel';
+        newEvent.deltaX = deltaX;
+        newEvent.deltaY = deltaY; //
+        // Further smooth movement - https://medium.com/creative-technology-concepts-code/native-browser-touch-drag-using-overflow-scroll-492dc92ac737
+        // Implement this for phone
+        //
+
+        $('#main-scroll-canvas').trigger(newEvent);
+      }); // Main scrolling functionality
 
       $('#main-scroll-canvas').on('mousewheel', function (event) {
-        var et = event.originalEvent;
-        event.preventDefault(); // Pinch-Zoom
+        //console.log('mousewheel');
+        //console.log(event);
+        var et;
+
+        if (!window.isMobile) {
+          et = event.originalEvent;
+          event.preventDefault();
+        } else {
+          et = event;
+        } // Pinch-Zoom
         // Tricky spec - https://medium.com/@auchenberg/detecting-multi-touch-trackpad-gestures-in-javascript-a2505babb10e
 
-        if (et.ctrlKey) {
-          osmo.scroll.PAPER.view.zoom = osmo.pzinteract.changeZoom(osmo.scroll.PAPER.view.zoom, et.deltaY);
-          /*
-          let zoomObj = { zoomVal: osmo.scroll.PAPER.view.zoom };
-          let tween = osmo.scroll.PAPER.Tween( zoomObj,
-          	{ zoomVal: osmo.scroll.PAPER.view.zoom },
-          	{ zoomVal: osmo.pzinteract.changeZoom(osmo.scroll.PAPER.view.zoom, et.deltaY) },
-          	1000
-          );
-          */
 
-          /*
-          // Install event using on('update') method:
-          tween.on('update', function(event) {
-          		console.log(event);
-              //factorText.content = 'factor: ' + event.factor.toFixed(2);
-          });
-          */
+        if (et.ctrlKey && osmo.pzinteract.isTrackpadDetected) {
+          osmo.scroll.PAPER.view.zoom = osmo.pzinteract.changeZoom(osmo.scroll.PAPER.view.zoom, et.deltaY); // Center Y-axis on zoom-out
 
-          /*
-          let bounds = osmo.scroll.PAPER.view.bounds;
-             if (bounds.x < 0) osmo.scroll.PAPER.view.center = osmo.scroll.PAPER.view.center.subtract(new osmo.scroll.PAPER.Point(bounds.x, 0));
-            if (bounds.y < 0) osmo.scroll.PAPER.view.center = osmo.scroll.PAPER.view.center.subtract(new osmo.scroll.PAPER.Point(0, bounds.y));
-             bounds = osmo.scroll.PAPER.view.bounds;
-            var
-                w = bounds.x + bounds.width,
-                h = bounds.y + bounds.height;
-             if (w > osmo.scroll.PAPER.view.viewSize.width) osmo.scroll.PAPER.view.center = osmo.scroll.PAPER.view.center.subtract(new osmo.scroll.PAPER.Point(w - osmo.scroll.PAPER.view.viewSize.width, 0));
-            if (h > osmo.scroll.PAPER.view.viewSize.height) osmo.scroll.PAPER.view.center = osmo.scroll.PAPER.view.center.subtract(new osmo.scroll.PAPER.Point(0, h - osmo.scroll.PAPER.view.viewSize.height));
-          	*/
+          var bounds = osmo.scroll.PAPER.view.bounds;
+          if (bounds.y < 0) osmo.scroll.PAPER.view.center = osmo.scroll.PAPER.view.center.subtract(new osmo.scroll.PAPER.Point(0, bounds.y));
+          bounds = osmo.scroll.PAPER.view.bounds;
+          var h = bounds.y + bounds.height;
+          if (h > osmo.scroll.PAPER.view.viewSize.height) osmo.scroll.PAPER.view.center = osmo.scroll.PAPER.view.center.subtract(new osmo.scroll.PAPER.Point(0, h - osmo.scroll.PAPER.view.viewSize.height));
         } else {
           var fac = 1.005 / (osmo.scroll.PAPER.view.zoom * osmo.scroll.PAPER.view.zoom);
+          if (window.isMobile) fac *= 6; //
 
           if (osmo.scroll.PAPER.view.zoom == 1) {
-            if (osmo.scroll.PAPER.view.center.y < osmo.scroll.paperHeight / 2 + 1 && et.deltaY < 0) osmo.scroll.PAPER.view.center = osmo.pzinteract.changeCenter(osmo.scroll.PAPER.view.center, et.deltaX, et.deltaY, fac);else if (osmo.scroll.PAPER.view.center.y > osmo.scroll.paperHeight / 2 - 1 && et.deltaY > 0) osmo.scroll.PAPER.view.center = osmo.pzinteract.changeCenter(osmo.scroll.PAPER.view.center, et.deltaX, et.deltaY, fac);else {
-              osmo.scroll.PAPER.view.center = osmo.pzinteract.changeCenter(osmo.scroll.PAPER.view.center, et.deltaX, 0, fac);
-            }
-          } else {
-            if (osmo.scroll.PAPER.view.center.y * osmo.scroll.PAPER.view.zoom - osmo.scroll.paperHeight / 2 <= 0 && et.deltaY > 0) {
-              osmo.scroll.PAPER.view.center = osmo.pzinteract.changeCenter(osmo.scroll.PAPER.view.center, et.deltaX, 0, fac);
-            } else if (osmo.scroll.PAPER.view.center.y * osmo.scroll.PAPER.view.zoom > -osmo.scroll.paperHeight / 2 + osmo.scroll.paperHeight * osmo.scroll.PAPER.view.zoom && et.deltaY < 0) {
-              osmo.scroll.PAPER.view.center = osmo.pzinteract.changeCenter(osmo.scroll.PAPER.view.center, et.deltaX, 0, fac);
+            var deltaValX, deltaValY;
+
+            if (osmo.pzinteract.isTrackpadDetected) {
+              deltaValX = et.deltaX;
+              deltaValY = et.deltaY;
             } else {
-              osmo.scroll.PAPER.view.center = osmo.pzinteract.changeCenter(osmo.scroll.PAPER.view.center, et.deltaX, et.deltaY, fac);
-            }
+              deltaValY = et.deltaX;
+              deltaValX = et.deltaY;
+            } //
+
+
+            osmo.scroll.PAPER.view.center = osmo.pzinteract.changeCenter(osmo.scroll.PAPER.view.center, deltaValX, 0, fac);
+          } else {
+            osmo.scroll.PAPER.view.center = osmo.pzinteract.changeCenter(osmo.scroll.PAPER.view.center, et.deltaX, et.deltaY, fac);
           }
         }
       });
@@ -33655,12 +33706,18 @@ osmo.PanAndZoom = /*#__PURE__*/function () {
   }, {
     key: "changeCenter",
     value: function changeCenter(oldCenter, deltaX, deltaY, factor) {
+      //
       var offset = new this.PAPER.Point(deltaX, -deltaY);
       offset = offset.multiply(factor);
       oldCenter = oldCenter.add(offset); //
 
       if (oldCenter.x < osmo.scroll.paperWidth / 2) oldCenter.x = osmo.scroll.paperWidth / 2;
       if (oldCenter.x > osmo.datasvg.scrollWidth) oldCenter.x = osmo.datasvg.scrollWidth; //
+      //
+
+      if (oldCenter.y * osmo.scroll.PAPER.view.zoom - osmo.scroll.paperHeight / 2 <= 0 && deltaY > 0) oldCenter.y = osmo.scroll.paperHeight / (2 * osmo.scroll.PAPER.view.zoom);
+      if (oldCenter.y * osmo.scroll.PAPER.view.zoom > -osmo.scroll.paperHeight / 2 + osmo.scroll.paperHeight * osmo.scroll.PAPER.view.zoom && deltaY < 0) oldCenter.y = -osmo.scroll.paperHeight / (2 * osmo.scroll.PAPER.view.zoom) + osmo.scroll.paperHeight; //
+      //
 
       return oldCenter;
     }
@@ -33954,7 +34011,7 @@ osmo.svgScroll = /*#__PURE__*/function () {
       text.fillColor = '#b97941';
       text.fontFamily = 'Roboto';
       text.fontSize = window.isMobile ? '12px' : '18px';
-      text.content = 'Scroll to explore';
+      text.content = window.isMobile ? 'Hold & Scroll to explore' : 'Scroll to explore';
       var textWidth = text.bounds.width; //
       // SCROLL ARROW
       //
@@ -34008,6 +34065,7 @@ osmo.svgScroll = /*#__PURE__*/function () {
         raster.position.x = osmo.scroll.paperWidth * s * 3 / 4 + raster.width * s / 2; //
 
         this.scrollWidth = raster.width * s;
+        this.scrollHeight = osmo.scroll.paperHeight;
       } else if (this.quality == 'Mobile') {
         //
         //MQscroll
@@ -34025,6 +34083,7 @@ osmo.svgScroll = /*#__PURE__*/function () {
         //
 
         this.scrollWidth = _raster.width * _s;
+        this.scrollHeight = osmo.scroll.paperHeight;
       } else if (this.quality == 'Retina') {
         //
         //RQscroll
@@ -34042,6 +34101,7 @@ osmo.svgScroll = /*#__PURE__*/function () {
         _raster2.position.x = osmo.scroll.paperWidth * 3 / 4 + _raster2.width * _s2 / 2; //
 
         this.scrollWidth = _raster2.width * _s2;
+        this.scrollHeight = osmo.scroll.paperHeight;
       }
     }
     /**
