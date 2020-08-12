@@ -34062,7 +34062,7 @@ osmo.svgScroll = /*#__PURE__*/function () {
         // Move the raster to the center of the view
 
         raster.position = this.PAPER.view.center;
-        raster.position.x = osmo.scroll.paperWidth * s * 3 / 4 + raster.width * s / 2; //
+        raster.position.x = osmo.scroll.paperWidth * 3 / 4 + raster.width * s / 2; //
 
         this.scrollWidth = raster.width * s;
         this.scrollHeight = osmo.scroll.paperHeight;
@@ -34348,14 +34348,14 @@ window.onload = function () {
   if (!window.isMobile) {
     console.log('Loading screen for desktop');
     window.loading_screen = window.pleaseWait({
-      logo: 'images/OsmoSplash.png',
+      logo: 'assets/images/OsmoSplash.png',
       backgroundColor: '#b4d2da',
       loadingHtml: DesktopHtmlContent
     });
   } else {
     console.log('Loading screen for mobile');
     window.loading_screen = window.pleaseWait({
-      logo: 'images/OsmoSplash.png',
+      logo: 'assets/images/OsmoSplash.png',
       backgroundColor: '#b4d2da',
       loadingHtml: please_wait_spinner
     }); //
@@ -34536,7 +34536,7 @@ osmo.Scroll = /*#__PURE__*/function () {
         window.loading_screen.finish();
       };
 
-      downloadingImage.src = 'images/SCROLL_cs6_ver23_APP_final_300-HIGH.png';
+      downloadingImage.src = 'assets/images/SCROLL_cs6_ver23_APP_final_300-HIGH.png';
     }
     /**
      * ------------------------------------------------
@@ -34570,7 +34570,7 @@ osmo.Scroll = /*#__PURE__*/function () {
         window.loading_screen.finish(); //
       };
 
-      downloadingImage.src = 'images/SCROLL_cs6_ver23_APP_final_300-HIGH.png';
+      downloadingImage.src = 'assets/images/SCROLL_cs6_ver23_APP_final_300-HIGH.png';
     }
     /**
      * ------------------------------------------------
@@ -34599,7 +34599,7 @@ osmo.Scroll = /*#__PURE__*/function () {
         window.loading_screen.finish(); //
       };
 
-      downloadingImage.src = 'images/SCROLL_cs6_ver23_APP_final_nobg-LOW-300ppi.png';
+      downloadingImage.src = 'assets/images/SCROLL_cs6_ver23_APP_final_nobg-LOW-300ppi.png';
     }
   }]);
 
