@@ -34536,7 +34536,7 @@ osmo.Scroll = /*#__PURE__*/function () {
         window.loading_screen.finish();
       };
 
-      downloadingImage.src = 'assets/images/SCROLL_cs6_ver23_APP_final_300-HIGH.png';
+      downloadingImage.src = 'assets/images/SCROLL_cs6_ver23_APP_final_300ppi-HIGH.png';
     }
     /**
      * ------------------------------------------------
@@ -34549,7 +34549,7 @@ osmo.Scroll = /*#__PURE__*/function () {
     value: function loadRQ() {
       console.log('osmo.scroll.loadRQ - called'); //
 
-      osmo.pzinteract.setMaxZoom(12); //
+      osmo.pzinteract.setMaxZoom(4); //
 
       var please_wait_spinner = '<div class="sk-three-bounce"><div class="sk-child sk-bounce1" style="background-color: #b97941"></div><div class="sk-child sk-bounce2" style="background-color: #b97941"></div><div class="sk-child sk-bounce3" style="background-color: #b97941"></div></div>';
       (0, _jquery.default)('.pg-loading-html').empty();
@@ -34570,7 +34570,7 @@ osmo.Scroll = /*#__PURE__*/function () {
         window.loading_screen.finish(); //
       };
 
-      downloadingImage.src = 'assets/images/SCROLL_cs6_ver23_APP_final_300-HIGH.png';
+      downloadingImage.src = 'assets/images/SCROLL_cs6_ver23_APP_final_600ppi-RETINA.png';
     }
     /**
      * ------------------------------------------------
@@ -34599,7 +34599,7 @@ osmo.Scroll = /*#__PURE__*/function () {
         window.loading_screen.finish(); //
       };
 
-      downloadingImage.src = 'assets/images/SCROLL_cs6_ver23_APP_final_nobg-LOW-300ppi.png';
+      downloadingImage.src = 'assets/images/SCROLL_cs6_ver23_APP_final_300ppi-HIGH.png';
     }
   }]);
 
